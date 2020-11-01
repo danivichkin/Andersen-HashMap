@@ -1,4 +1,5 @@
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 public class HashMap<K, V> {
@@ -6,68 +7,88 @@ public class HashMap<K, V> {
     static final int DEFAULT_INITIAL_CAPACITY = 16;
     static final double DEFAULT_LOAD_FACTOR = 0.75;
 
-    private Node[] table;
-    private double loadfactor;
-    private int threshold;
+    private Node<K, V>[] table = new Node[DEFAULT_INITIAL_CAPACITY];
     private int size;
+    private int threshold = (int) (DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
 
     public HashMap() {
     }
 
-    public V remove(Object key){
-        Node<K, V> e;
-        return removeNode(hash(key), key, null, false);
-    }
+    public V put(K key, V value) {
 
-    private V removeNode(int hash, Object key, Object o, boolean b) {
-        table[indexFor(hash(key), table.length)] = null;
+        if ((table == null) || (size == 0) || (size < threshold)) {
+            resize();
+        }
+
+        int indexForNewValue = indexFor(hash(key));
+        Node<K, V> newNode = new Node<>(hash(key), key, value, null);
+        Node<K, V> currentNode = table[indexForNewValue];
+
+        if (newNode.key == null) {
+            table[0] = newNode;
+            return null;
+        }
+
+        if (newNode.hash == currentNode.hash && ((newNode.value != currentNode.value) && (newNode.key != currentNode.key))) {
+            for (Node<K, V> node = table[indexForNewValue]; currentNode != null; currentNode = currentNode.next) {
+                if (node.hash == key.hashCode() && key == node.key) {
+                    node.value = value;
+                    return null;
+                }
+            }
+        }
+        table[indexForNewValue] = newNode;
         return null;
     }
 
-    public V put(K key, V value) {
-        return putVal(hash(key), key, value, false);
+    public V get(Object key) {
+        int currentNodeIndex = indexFor(hash(key));
+        for (Node<K, V> currentNode = table[currentNodeIndex]; currentNode != null; currentNode = currentNode.next) {
+            if (currentNode.hash == key.hashCode() && currentNode.key == key)
+                return currentNode.value;
+        }
+        return null;
     }
 
-    public V putVal(int hash, K key, V value, boolean hasPrev) {
-        if ((table == null) || (table.length == 0))
-            resize();
-        if (key == null) {
-            if (table[0].next != null)
-                table[0].next = new Node(hash, key, value, null);
-        } else {
-            table[indexFor(hash, table.length)] = new Node(hash, key, value, null);
+    public V remove(K key) {
+        if ((table == null) || (size == 0))
+            return null;
+
+        int currentNodeIndex = indexFor(hash(key));
+        Node currentNode = table[currentNodeIndex];
+        Node prevNode = currentNode;
+
+        while (currentNode != null) {
+            Node nextNode = currentNode.next;
+            if ((currentNode.hash == prevNode.hash) && (currentNode.key == key))
+                if (currentNode == prevNode)
+                    table[currentNodeIndex] = nextNode;
+                else
+                    prevNode.next = nextNode;
+
+            prevNode = currentNode;
+            currentNode = nextNode;
         }
         return null;
     }
 
     void resize() {
-        int newCapacity = size * 2;
+        int newCapacity = DEFAULT_INITIAL_CAPACITY * 2;
         Node[] newTable = new Node[newCapacity];
         transfer(newTable);
         table = newTable;
-        threshold = (int) (newCapacity * loadfactor);
-    }
-
-    Node get(Object key) {
-        return (key == null) ? table[0] : table[indexFor(hash(key), table.length)];
-    }
-
-    private Node getNode(int hash, Object key) {
-        Node<K, V> first;
-        if ((table != null) && (table.length > 0))
-            return null;
-    return null;
+        threshold = (int) (newCapacity * DEFAULT_LOAD_FACTOR);
     }
 
     private void transfer(Node[] newTable) {
         for (Node node : table) {
             int hash = hash(node.getKey());
-            indexFor(hash, newTable.length);
+            indexFor(hash);
         }
     }
 
-    public int indexFor(int h, int length) {
-        return h & (length - 1);
+    public int indexFor(int h) {
+        return h & (table.length - 1);
     }
 
     public int hash(Object key) {
@@ -76,13 +97,6 @@ public class HashMap<K, V> {
         return (key == null) ? 0 : Math.abs(key.hashCode() + randomValue);
     }
 
-    public int size() {
-        return size;
-    }
-
-    public boolean isEmpty() {
-        return size == 0;
-    }
 }
 
 class Node<K, V> implements Map.Entry<K, V> {
@@ -114,4 +128,5 @@ class Node<K, V> implements Map.Entry<K, V> {
         this.value = newValue;
         return newValue;
     }
+
 }
